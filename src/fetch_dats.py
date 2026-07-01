@@ -22,4 +22,22 @@ def fetch_orderbook_data():
         return resp.json()
     except requests.RequestException as e:
         print(f"  [WARNING] Request failed: {e}")
-        return None
+        return None 
+    
+def parse_snapshot(raw: dict, timestamp: datetime):
+    row = {
+        "timestamp":      timestamp.isoformat(),
+        "last_update_id": raw["lastUpdateId"],
+    }
+    bids = raw["bids"]
+    asks = raw["asks"]
+    for i in range(DEPTH):
+        row[f"bid_price_{i+1}"] = float(bids[i][0]) if i < len(bids) else None
+        row[f"bid_qty_{i+1}"]   = float(bids[i][1]) if i < len(bids) else None
+        row[f"ask_price_{i+1}"] = float(asks[i][0]) if i < len(asks) else None
+        row[f"ask_qty_{i+1}"]   = float(asks[i][1]) if i < len(asks) else None
+    best_bid = float(bids[0][0]) if bids else None
+    best_ask = float(asks[0][0]) if asks else None
+    row["mid_price"] = (best_bid + best_ask) / 2 if (best_bid and best_ask) else None
+    row["spread"]    = (best_ask - best_bid)      if (best_bid and best_ask) else None
+    return row
