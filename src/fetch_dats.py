@@ -41,3 +41,27 @@ def parse_snapshot(raw: dict, timestamp: datetime):
     row["mid_price"] = (best_bid + best_ask) / 2 if (best_bid and best_ask) else None
     row["spread"]    = (best_ask - best_bid)      if (best_bid and best_ask) else None
     return row
+
+
+def fetch_snapshot():
+    os.makedirs(OUTPUT_DIR, exist_ok=True) 
+    # create the output directory if it doesn't exist
+
+    rows        = []
+    start_time  = time.monotonic()
+    end_time    = start_time + DURATION 
+    # to record time of our data collection 
+
+    while time.monotonic() < end_time:
+        loop_start = time.monotonic()
+        ts = datetime.now(timezone.utc)
+        raw = fetch_snapshot()
+        if raw:
+            rows.append(parse_snapshot(raw, ts))
+            snap_count += 1
+        else:
+            fail_count += 1
+    #append the parsed snapshot to the rows list if the fetch was successful, otherwise increment the fail count
+
+
+
