@@ -41,3 +41,39 @@ def parse_snapshot(raw: dict, timestamp: datetime):
     row["mid_price"] = (best_bid + best_ask) / 2 if (best_bid and best_ask) else None
     row["spread"]    = (best_ask - best_bid)      if (best_bid and best_ask) else None
     return row
+
+
+def fetch_snapshot():
+    os.makedirs(OUTPUT_DIR, exist_ok=True) 
+    # create the output directory if it doesn't exist
+
+    rows        = []
+    start_time  = time.monotonic()
+    end_time    = start_time + DURATION
+    # to record time of our data collection 
+
+    snap_count  = 0
+    fail_count  = 0
+    FLUSH_EVERY = 300 
+    while time.monotonic() < end_time:
+        loop_start = time.monotonic()
+        ts = datetime.now(timezone.utc)
+        raw = fetch_snapshot()
+        if raw:
+            rows.append(parse_snapshot(raw, ts))
+            snap_count += 1
+        else:
+            fail_count += 1
+        loop_end = time.monotonic()
+        
+        if len(rows) >= FLUSH_EVERY:
+            df = pd.DataFrame(rows)
+            write_header = not os.path.exists(OUTPUT_FILE)
+            df.to_csv(OUTPUT_FILE, mode="a", header=write_header, index=False)
+            rows = []
+        # uploads my data every few counts    
+
+        if rows:
+            df = pd.DataFrame(rows)
+            write_header = not os.path.exists(OUTPUT_FILE)
+            df.to_csv(OUTPUT_FILE, mode="a", header=write_header, index=False)
